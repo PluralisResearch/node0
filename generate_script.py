@@ -48,6 +48,7 @@ nohup docker exec -w $workdir $CONTAINER_NAME_VAR bash -c "CUDA_VISIBLE_DEVICES=
 $email_flag \
 --auth_server $auth_server \
 --custom_module_path $custom_module_path \
+$identity_path_flag \
 --host_maddrs /ip4/0.0.0.0/tcp/$host_port \
 --announce_maddrs /ip4/$public_ip/tcp/$announce_port \
 --initial_peers $peer_addrs" \
@@ -65,6 +66,7 @@ CUDA_VISIBLE_DEVICES=$gpu_id python3.11 $python_file_path \
 $email_flag \
 --auth_server $auth_server \
 --custom_module_path $custom_module_path \
+$identity_path_flag \
 --host_maddrs /ip4/0.0.0.0/tcp/$host_port \
 --announce_maddrs /ip4/$public_ip/tcp/$announce_port \
 --initial_peers $peer_addrs \
@@ -108,6 +110,7 @@ def parse_arguments():
         nargs="*",
         help="Addresses of active peers in the run",
     )
+    parser.add_argument("--identity_path", type=str, help="Path to identity file to be used in P2P")
 
     args = parser.parse_args()
     return args
@@ -216,6 +219,11 @@ def input_arguments(args: argparse.Namespace) -> argparse.Namespace:
                 gpu_id = input("Invalid GPU ID. Please enter GPU ID to use: ")
             args.gpu_id = gpu_id
 
+        if args.identity_path is None:
+            identity_path = input("Please enter identity file path [optional]: ")
+            identity_path = identity_path.strip()
+            args.identity_path = identity_path if identity_path else None
+
         if args.use_docker is None:
             use_docker = input(
                 "Do you want to run the code inside docker container (needs docker installed and image prebuilt)? [Y/n] "
@@ -236,9 +244,12 @@ def input_arguments(args: argparse.Namespace) -> argparse.Namespace:
         print(f"\trun_config: {args.run_config}")
         print(f"\tinitial_peers: {args.initial_peers}")
         print(f"\tgpu_id: {args.gpu_id}")
+        print(f"\tidentity_path: {args.identity_path}")
         print(f"\tuse_docker: {args.use_docker}")
 
         need_change = input("\nDo you want to change anything? [Y/n] ")
+        if need_change == "":
+            need_change = "y"
         while not (need_change := validate_yn(need_change)):
             need_change = input("Invalid input. Do you want to change anything? [Y/n] ")
 
@@ -252,12 +263,13 @@ def input_arguments(args: argparse.Namespace) -> argparse.Namespace:
             print("\t6. run_config")
             print("\t7. initial_peers")
             print("\t8. gpu_id")
-            print("\t9. use_docker")
+            print("\t9. identity_path")
+            print("\t10. use_docker")
             print("\t0. Cancel")
 
-            n_change = input("Enter (0-9): ")
-            while (n_change := validate_number(n_change, min_value=0, max_value=9)) == -1:
-                n_change = input("Invalid input. Enter (0-9): ")
+            n_change = input("Enter (0-10): ")
+            while (n_change := validate_number(n_change, min_value=0, max_value=10)) == -1:
+                n_change = input("Invalid input. Enter (0-10): ")
 
             if n_change == 1:
                 args.token = None
@@ -276,6 +288,8 @@ def input_arguments(args: argparse.Namespace) -> argparse.Namespace:
             elif n_change == 8:
                 args.gpu_id = None
             elif n_change == 9:
+                args.identity_path = None
+            elif n_change == 10:
                 args.use_docker = None
             else:
                 pass
@@ -339,6 +353,7 @@ def main(args: argparse.Namespace):
             exit(1)
 
     email_flag = f"--email {args.email}" if args.email else ""
+    identity_path_flag = f"--identity_path {args.identity_path}" if args.identity_path else ""
 
     # Get public ip address
     public_ip = get_public_ip()
@@ -370,6 +385,7 @@ def main(args: argparse.Namespace):
                 "announce_port": args.announce_port,
                 "auth_server": args.auth_server,
                 "custom_module_path": custom_module_path,
+                "identity_path_flag": identity_path_flag,
                 "peer_addrs": " ".join(args.initial_peers),
                 "public_ip": public_ip,
                 "email_flag": email_flag,
@@ -392,6 +408,7 @@ def main(args: argparse.Namespace):
                 "announce_port": args.announce_port,
                 "auth_server": args.auth_server,
                 "custom_module_path": custom_module_path,
+                "identity_path_flag": identity_path_flag,
                 "peer_addrs": " ".join(args.initial_peers),
                 "public_ip": public_ip,
                 "email_flag": email_flag,
