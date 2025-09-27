@@ -46,7 +46,7 @@ RunPod assigns random external port mappings, so you need to configure port forw
 
 ## Tensordock
 ### Distributed Compute
-When provisioning an instance using the Distributed Compute option, Tensordock allows you to request a specific internal port and then assigns a nrandom external port mapping to that port, so you need to configure port forwarding:
+When provisioning an instance using the Distributed Compute option, Tensordock allows you to request a specific internal port and then assigns a random external port mapping to that port, so you need to configure port forwarding:
 
 1. During provisioning setup, under the Port Forwarding section → "Request Port" and choose `49200`:
 
