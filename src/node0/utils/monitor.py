@@ -331,7 +331,7 @@ class MonitorWorker(BaseMonitor):
                     self.load_state_fail_cnt += 1
                     if self.load_state_fail_cnt >= self.terminate_load_state_limit:
                         logger.error("Failed to load state from peers. Exiting run.")
-                    os.killpg(os.getpgrp(), signal.SIGTERM)
+                        os.killpg(os.getpgrp(), signal.SIGTERM)
 
                 error_in_grads = re.search(self.error_in_grads, log_entry)
                 if error_in_grads:
