@@ -296,17 +296,24 @@ def test_internet_speed() -> tuple[float, float, float]:
 
 
 def get_device_info() -> tuple[str, float, float]:
-    """Get device name and memory"""
+    """Get device name and memory."""
     ram = float(psutil.virtual_memory().total) / 1024**3
 
-    if not torch.cuda.is_available():
-        logger.error("CUDA is not available. Exiting run.")
-        exit(1)
+    if torch.cuda.is_available():
+        device_id = torch.cuda.current_device()
+        device_info = torch.cuda.get_device_properties(device_id)
+        device_name = device_info.name
+        gpu_memory = device_info.total_memory / 1024**3  # GB
+        return device_name, gpu_memory, ram
 
-    device_info = torch.cuda.get_device_properties()
-    device_name = device_info.name
-    gpu_memory = device_info.total_memory / 1024**3  # GB
-    return device_name, gpu_memory, ram
+    mps_backend = getattr(torch.backends, "mps", None)
+    if mps_backend is not None and mps_backend.is_available():
+        # MPS uses unified memory on Apple Silicon, so RAM is the relevant capacity signal.
+        logger.info("CUDA is not available. Using Apple Metal (MPS).")
+        return "mps", ram, ram
+
+    logger.error("Neither CUDA nor Apple Metal (MPS) is available. Exiting run.")
+    exit(1)
 
 
 def get_node_info() -> NodeInfo:
