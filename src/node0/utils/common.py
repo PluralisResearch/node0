@@ -110,11 +110,22 @@ def load_ss_components(ss_url: str):
         Dict of: rcv, fixed_tok_weight
     """
     try:
-        response = requests.get(ss_url)
+        response = requests.get(ss_url, timeout=30)
         response.raise_for_status()
 
         buffer = io.BytesIO(response.content)
-        ss_comp_dict = torch.load(buffer, map_location="cpu")
+        ss_comp_dict = torch.load(buffer, map_location="cpu", weights_only=True)
+
+        if not isinstance(ss_comp_dict, dict):
+            raise RuntimeError("Invalid subspace compression payload format")
+
+        required_keys = {"rcv", "fixed_tok_weight"}
+        missing_keys = required_keys - set(ss_comp_dict.keys())
+        if missing_keys:
+            raise RuntimeError(f"Missing keys in subspace compression payload: {sorted(missing_keys)}")
+        for key in required_keys:
+            if not isinstance(ss_comp_dict[key], torch.Tensor):
+                raise RuntimeError(f"Expected torch.Tensor for key '{key}'")
 
     except requests.RequestException as e:
         raise RuntimeError(f"Failed to download from URL: {e}") from e
